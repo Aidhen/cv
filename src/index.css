@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#111111] text-gray-200 antialiased;
+  }
+}
+
+/* Variabili CSS globali di fallback */
+:root {
+  --color-primary: #48E61C;
+}
