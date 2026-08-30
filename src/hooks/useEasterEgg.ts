@@ -1,4 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+
+const GLITCH_COLORS = ['#ED1C24', '#EF8585', '#B37424', '#48E61C', '#015369', '#064EA2', '#7092BE', '#690150'];
+const GLITCH_TIME_WINDOW_MS = 4000;
+const GLITCH_CLICKS_THRESHOLD = 7;
+const GLITCH_DURATION_MS = 2500;
 
 export const useEasterEgg = (defaultColor: string = '#48E61C') => {
   const [themeColor, setThemeColor] = useState(defaultColor);
@@ -9,55 +14,58 @@ export const useEasterEgg = (defaultColor: string = '#48E61C') => {
   const clickBuffer = useRef<number[]>([]);
   const trollButtonRef = useRef<HTMLButtonElement>(null);
 
-  const glitchColors = ['#ED1C24', '#EF8585', '#B37424', '#48E61C', '#015369', '#064EA2', '#7092BE', '#690150'];
-
-  const triggerGlitch = () => {
+  const triggerGlitch = useCallback(() => {
     setIsGlitching(true);
     clickBuffer.current = [];
+    
     setTimeout(() => {
       setIsGlitching(false);
       setShowWarning(true);
-    }, 2500);
-  };
+    }, GLITCH_DURATION_MS);
+  }, []);
 
-  const handleColorChange = (color: string) => {
+  const handleColorChange = useCallback((color: string) => {
     if (showWarning || isGlitching) return;
+    
     const now = Date.now();
-    clickBuffer.current = clickBuffer.current.filter(t => now - t < 1500);
+    clickBuffer.current = clickBuffer.current.filter(
+      timestamp => now - timestamp < GLITCH_TIME_WINDOW_MS
+    );
     clickBuffer.current.push(now);
 
-    if (clickBuffer.current.length > 6) {
+    if (clickBuffer.current.length >= GLITCH_CLICKS_THRESHOLD) {
       triggerGlitch();
     } else {
       setThemeColor(color);
     }
-  };
+  }, [showWarning, isGlitching, triggerGlitch]);
 
   useEffect(() => {
-    let glitchInterval: ReturnType<typeof setInterval>;
-    if (isGlitching) {
-      glitchInterval = setInterval(() => {
-        const randomColor = glitchColors[Math.floor(Math.random() * glitchColors.length)];
-        setThemeColor(randomColor);
-      }, 80);
-    }
+    if (!isGlitching) return;
+
+    const glitchInterval = setInterval(() => {
+      const randomColor = GLITCH_COLORS[Math.floor(Math.random() * GLITCH_COLORS.length)];
+      setThemeColor(randomColor);
+    }, 80);
+    
     return () => clearInterval(glitchInterval);
   }, [isGlitching]);
 
-  const handleTrollHover = () => {
-    if (!trollTriggered) setTrollTriggered(true);
+  const handleTrollHover = useCallback(() => {
+    setTrollTriggered(true); 
+    
     if (trollButtonRef.current) {
       const x = (Math.random() - 0.5) * 280; 
       const y = (Math.random() - 0.5) * 120;
       trollButtonRef.current.style.transform = `translate(${x}px, ${y}px)`;
     }
-  };
+  }, []);
 
-  const resetTroll = () => {
+  const resetTroll = useCallback(() => {
     setShowWarning(false);
     setTrollTriggered(false);
     setThemeColor(defaultColor);
-  };
+  }, [defaultColor]);
 
   return {
     themeColor,
